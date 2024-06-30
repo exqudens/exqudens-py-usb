@@ -1,0 +1,17 @@
+# Directories
+__pycache__/
+.pytest_cache/
+.idea/
+.vs/
+.vscode/
+build/
+tmp/
+
+# Files
+*.iml
+*.iws
+*.ipr
+*.ids
+CMakeUserPresets.json
+CMakeSettings.json
+nohup.out
