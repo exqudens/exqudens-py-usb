@@ -1,5 +1,7 @@
 import logging.config
 
+from exqudens.usb.client import Client
+
 
 class TestExqudensUsbClient:
     """
@@ -18,7 +20,7 @@ class TestExqudensUsbClient:
                 'incremental': True,
                 'loggers': {
                     f"exqudens.usb.Client": {'level': logging.getLevelName(logging.DEBUG)},
-                    #f"{Serial.get_logger_name()}": {'level': logging.getLevelName(logging.DEBUG)},
+                    f"{Client.get_logger_name()}": {'level': logging.getLevelName(logging.DEBUG)},
                     f"{cls.__logger.name}": {'level': logging.getLevelName(logging.INFO)}
                 }
             })
@@ -28,7 +30,54 @@ class TestExqudensUsbClient:
 
     def test_1(self):
         try:
-            self.__logger.info(f"version: '{123}'")
+            client = Client()
+            self.__logger.info(f"client: {client is not None}")
+
+            assert client is not None
+
+            device = {}
+            devices = client.list_devices()
+            for d in devices:
+                self.__logger.info(f"{client.to_string(d)}")
+                if d["vendor"] == 1155 and d["product"] == 22337:
+                    device = d
+                    break
+            self.__logger.info(f"device: {device}")
+
+            assert len(device) == 5
+
+            client.open(device)
+            self.__logger.info(f"client.is_open: {client.is_open()}")
+
+            assert client.is_open()
+
+            data_bytes: list[int] = []
+            try:
+                data_bytes = client.bulk_read(endpoint=1)
+            except Exception as exception:
+                pass
+            size = len(data_bytes)
+            self.__logger.info(f"size: {size}")
+
+            assert size == 0
+
+            data = "hi test"
+            data_bytes = list(data.encode())
+            size = client.bulk_write(value=data_bytes, endpoint=1)
+            self.__logger.info(f"size: {size}")
+
+            assert size == 7
+
+            data_bytes = client.bulk_read(endpoint=1, size=7)
+            data = bytes(data_bytes).decode()
+            self.__logger.info(f"data: '{data}'")
+
+            assert data == "HI TEST"
+
+            client.close()
+            self.__logger.info(f"client.is_open: {client.is_open()}")
+
+            assert not client.is_open()
         except Exception as e:
             self.__logger.info(e, exc_info=True)
             raise e
