@@ -1,0 +1,13 @@
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
+
+[project]
+name = "exqudens-usb"
+version = "1.0.0"
+description = "Exqudens Python USB"
+requires-python = ">=3"
+
+[tool.pdm.build]
+includes = ["src"]
+package-dir = "src"
