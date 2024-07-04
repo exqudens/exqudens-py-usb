@@ -20,7 +20,7 @@ class TestExqudensUsbClient:
                 'incremental': True,
                 'loggers': {
                     f"exqudens.usb.Client": {'level': logging.getLevelName(logging.DEBUG)},
-                    f"{Client.get_logger_name()}": {'level': logging.getLevelName(logging.DEBUG)},
+                    f"{Client.get_logger_name()}": {'level': logging.getLevelName(logging.CRITICAL)},
                     f"{cls.__logger.name}": {'level': logging.getLevelName(logging.INFO)}
                 }
             })
@@ -52,14 +52,20 @@ class TestExqudensUsbClient:
             assert client.is_open()
 
             data_bytes: list[int] = []
+            last_exception = None
             try:
                 data_bytes = client.bulk_read(endpoint=1)
             except Exception as exception:
-                pass
+                cause = exception
+                while cause is not None:
+                    last_exception = str(cause)
+                    cause = cause.__cause__
+            self.__logger.info(f"last_exception: '{last_exception}'")
             size = len(data_bytes)
             self.__logger.info(f"size: {size}")
 
             assert size == 0
+            assert last_exception.endswith("libusbErrorName: 'LIBUSB_ERROR_TIMEOUT'")
 
             data = "hi test"
             data_bytes = list(data.encode())
@@ -73,6 +79,22 @@ class TestExqudensUsbClient:
             self.__logger.info(f"data: '{data}'")
 
             assert data == "HI TEST"
+
+            data_bytes: list[int] = []
+            last_exception = None
+            try:
+                data_bytes = client.bulk_read(endpoint=1)
+            except Exception as exception:
+                cause = exception
+                while cause is not None:
+                    last_exception = str(cause)
+                    cause = cause.__cause__
+            self.__logger.info(f"last_exception: '{last_exception}'")
+            size = len(data_bytes)
+            self.__logger.info(f"size: {size}")
+
+            assert size == 0
+            assert last_exception.endswith("libusbErrorName: 'LIBUSB_ERROR_TIMEOUT'")
 
             client.close()
             self.__logger.info(f"client.is_open: {client.is_open()}")
@@ -96,6 +118,16 @@ class TestExqudensUsbClient:
                 logging.getLogger(id).debug(message)
             elif level == 6:
                 logging.getLogger(id).info(message)
+        except Exception as e:
+            self.__logger.info(e, exc_info=True)
+            raise e
+
+    def __causes(self, result: list[Exception] = [], exception: Exception = None) -> list[Exception]:
+        try:
+            if exception is not None:
+                result.append(exception)
+                self.__causes(result=result, exception=exception.__cause__)
+            return result
         except Exception as e:
             self.__logger.info(e, exc_info=True)
             raise e
